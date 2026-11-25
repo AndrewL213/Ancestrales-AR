@@ -20,8 +20,22 @@ Seis leyendas de Colombia en realidad aumentada: el Silbón, la Patasola, el Moh
 
 | Carpeta | Contenido |
 |---|---|
-| `modelos/` | Las criaturas en `.glb`: 1 m de alto, origen en los pies, en escala de grises (monocromáticas), con esqueleto y 4 animaciones (Reposo, Saludar, Gritar, Asustar). |
+| `modelos/` | Las criaturas en `.glb`: 1 m de alto, origen en los pies, en escala de grises (monocromáticas), con esqueleto y 4 animaciones (Reposo, Saludar, Gritar, Asustar), distintas para cada criatura. |
 | `img/` | Retratos para el bestiario y el código QR. |
+
+## Animaciones
+Todas tienen los mismos 4 tipos de animación, pero cada criatura los hace a su manera:
+
+| Criatura | Saludar | Gritar | Asustar |
+|---|---|---|---|
+| El Silbón | Reverencia con la mano al pecho | Grito echado hacia adelante | Se alza con los brazos abiertos |
+| La Patasola | Saluda con la izquierda y se mece | Brazos arriba | Se lanza con las garras |
+| El Mohán | Alza los dos brazos | Grito hacia atrás | Se agacha y salta hacia ti |
+| La Madremonte | Saludo lento con la derecha | Grito fuerte hacia atrás | Se lanza con las garras |
+| El Hojarasquín | Alza los dos brazos, lento y pesado | Brazos arriba | Se alza con los brazos abiertos |
+| El Hombre Caimán | Abre y cierra la garra | Grito echado hacia adelante | Se agacha y salta hacia ti |
+
+Cada una tiene además su propia postura de reposo (encorvada, ladeada, con los brazos más abiertos…) y su propio ritmo.
 
 ## Módulo para Unity (`unity/Assets/Ancestrales/AR`)
 Es la versión completa estilo Pokémon GO, con AR Foundation:
