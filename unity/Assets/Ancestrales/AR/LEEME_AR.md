@@ -62,14 +62,21 @@ Abre `Datos/Criatura_<id>.asset`:
 
 ## Animaciones
 
-Los modelos vienen en pose T o A y sin animaciones, porque los rigs de los `.blend` no tenían acciones exportables. Para que se vean vivos, `CriaturaViva` agrega respiración, balanceo, giro hacia la cámara, saltitos y las animaciones de aparecer, ser absorbida y huir.
+Cada criatura trae un esqueleto humanoide y 4 animaciones dentro del `.glb`:
 
-Para usar animaciones reales:
+| Animación | Cuándo se usa |
+|---|---|
+| **Reposo** | En bucle, todo el tiempo. |
+| **Saludar** | Al tocar la criatura, la 1.ª vez. |
+| **Gritar** | Al tocar, la 2.ª vez. |
+| **Asustar** | Al tocar, la 3.ª vez (y vuelve a empezar). |
 
-1. Sube el `.glb` o un `.fbx` de cada criatura a **Mixamo**, que hace el auto-rig.
-2. Descarga una animación de *Idle* en FBX y otras que quieras (Taunt, Roar…).
-3. En Unity, crea un Animator Controller con *Idle* en bucle como estado por defecto y arma un prefab con ese Animator.
-4. Pon ese prefab en el campo **modelo** de la criatura. `CriaturaViva` detecta el Animator y deja de hacer la respiración procedural.
+- **Tocar** a la criatura (un toque corto, sin arrastrar) dispara la siguiente reacción. Después vuelve sola a *Reposo*.
+- Desde código: `criatura.Reaccionar("Gritar")`.
+- glTFast importa estas animaciones como componente **Animation (legacy)**. Si en el inspector del `.glb` cambias *Animation* a *Mecanim*, crea un Animator con triggers que se llamen igual que las animaciones.
+- Además, `CriaturaViva` da el giro hacia la cámara, el saltito, la aparición, la absorción y la huida.
+
+Para animaciones más finas (Mixamo o hechas a mano en Blender), cambia el campo **modelo** por tu prefab. Si sus clips se llaman *Reposo*, *Saludar*, *Gritar* y *Asustar*, funcionan sin tocar código.
 
 ## Abrir el AR desde el juego
 

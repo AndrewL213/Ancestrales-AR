@@ -23,7 +23,12 @@ namespace Ancestrales.AR
         Quaternion rotacionBase;
         Transform cam;
         Animator animador;
+        Animation clips;          // glTFast importa las animaciones del .glb como Animation (legacy)
         bool tieneAnimacion;
+
+        /// <summary>Reacciones que trae el modelo (Saludar, Gritar, Asustar).</summary>
+        public static readonly string[] Reacciones = { "Saludar", "Gritar", "Asustar" };
+        int siguienteReaccion;
         bool viva;            // idle activo
         float fase;
         float proximoSalto;
@@ -46,7 +51,16 @@ namespace Ancestrales.AR
             proximoSalto = Time.time + Random.Range(4f, 8f);
 
             animador = modelo.GetComponentInChildren<Animator>();
-            tieneAnimacion = animador != null && animador.runtimeAnimatorController != null;
+            clips = modelo.GetComponentInChildren<Animation>();
+            if (clips != null && clips["Reposo"] != null)
+            {
+                clips["Reposo"].wrapMode = WrapMode.Loop;
+                foreach (var r in Reacciones)
+                    if (clips[r] != null) clips[r].wrapMode = WrapMode.Once;
+                clips.Play("Reposo");
+            }
+            else clips = null;
+            tieneAnimacion = clips != null || (animador != null && animador.runtimeAnimatorController != null);
 
             CrearColision();
             sombra = SombraContacto.Crear(transform, Colision.size.x, Colision.size.z, materialSombra);
@@ -207,6 +221,29 @@ namespace Ancestrales.AR
                 yield return null;
             }
             Destroy(transform.parent != null ? transform.parent.gameObject : gameObject);
+        }
+
+        /// <summary>
+        /// Reacción al tocarla: Saludar, Gritar o Asustar (en orden, o la que se pida).
+        /// Sin animaciones en el modelo, da un saltito.
+        /// </summary>
+        public string Reaccionar(string nombre = null)
+        {
+            if (!viva) return null;
+            if (nombre == null) nombre = Reacciones[siguienteReaccion++ % Reacciones.Length];
+            if (clips != null && clips[nombre] != null)
+            {
+                clips.CrossFade(nombre, 0.15f);
+                clips.CrossFadeQueued("Reposo", 0.25f, QueueMode.CompleteOthers);
+                return nombre;
+            }
+            if (animador != null && animador.runtimeAnimatorController != null)
+            {
+                animador.SetTrigger(nombre);
+                return nombre;
+            }
+            if (saltoT < 0f) saltoT = 0f;
+            return nombre;
         }
 
         /// <summary>Pequeño susto cuando el amuleto pasa cerca.</summary>

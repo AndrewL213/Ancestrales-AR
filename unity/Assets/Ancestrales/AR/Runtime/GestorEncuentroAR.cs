@@ -119,9 +119,10 @@ namespace Ancestrales.AR
                     ActualizarApuntado();
                     break;
                 case Fase.Encuentro:
-                    hud?.Mensaje(intentos == 0
-                        ? "Desliza el amuleto hacia arriba para lanzarlo.\nAcierta cuando el aro esté pequeño."
+                    hud?.Mensaje(intentos == 0 && toques == 0
+                        ? "Tócala para que reaccione.\nDesliza el amuleto hacia arriba para capturarla."
                         : null);
+                    DetectarToqueCriatura();
                     break;
             }
             if (lanzador != null) lanzador.Activo = FaseActual == Fase.Encuentro;
@@ -169,6 +170,27 @@ namespace Ancestrales.AR
                 hud?.Mensaje(rastreando
                     ? "Apunta a " + donde + " y mueve el celular despacio…"
                     : "Mueve el celular despacio para reconocer el espacio…");
+            }
+        }
+
+        // Un toque corto (sin arrastrar) sobre la criatura la hace reaccionar.
+        Vector2 toqueInicio; float toqueT; bool toqueActivo; int toques;
+        void DetectarToqueCriatura()
+        {
+            if (Instancia == null) return;
+            var e = EntradaTactil.Leer();
+            if (e.empezo && (hud == null || !hud.TocaInterfaz(e.posicion)))
+            {
+                toqueInicio = e.posicion; toqueT = Time.time; toqueActivo = true;
+            }
+            if (!toqueActivo || !e.termino) return;
+            toqueActivo = false;
+            if ((e.posicion - toqueInicio).magnitude > Screen.height * 0.02f || Time.time - toqueT > 0.4f) return;
+            var rayo = camara.ScreenPointToRay(e.posicion);
+            if (Instancia.Colision != null && Instancia.Colision.Raycast(rayo, out _, 50f))
+            {
+                var r = Instancia.Reaccionar();
+                if (r != null) { toques++; hud?.Valoracion(r == "Saludar" ? "¡Hola!" : r == "Gritar" ? "¡Aaargh!" : "¡Buu!"); }
             }
         }
 
