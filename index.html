@@ -292,7 +292,9 @@
 </div>
 
 <script type="module">
-import { arDisponible, iniciarAR } from "./js/ar.js";
+// El modo AR propio se carga solo cuando hace falta: si el navegador no lo soporta,
+// el resto de la página sigue funcionando.
+const cargarAR = () => import("./js/ar.js");
 const CRIATURAS = [
   { id: "silbon", nombre: "El Silbón", altura: 1.9,
     linea: "Silba en los Llanos con un costal de huesos.",
@@ -397,11 +399,14 @@ function marcarEncontrada() {
   }
 }
 let hayWebXR = false;
-arDisponible().then(v => { hayWebXR = v; });
+if (navigator.xr && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap")) {
+  navigator.xr.isSessionSupported("immersive-ar").then(v => { hayWebXR = v; }).catch(() => {});
+}
 document.getElementById("invocar").addEventListener("click", async () => {
   if (hayWebXR) {
     capa.hidden = false;
     try {
+      const { iniciarAR } = await cargarAR();
       sesionAR = await iniciarAR({
         url: `modelos/${actual.id}.glb`,
         altura: actual.altura,
