@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#0f1d16">
 <title>Ancestrales — Bestiario en realidad aumentada</title>
 <meta name="description" content="Pon a las leyendas colombianas en tu suelo, tu mesa o tu mano con realidad aumentada.">
+<script type="importmap">{ "imports": { "three": "./js/three/three.module.min.js", "three/addons/": "./js/three/addons/" } }</script>
 <script type="module" src="js/model-viewer.min.js"></script>
 <style>
   @font-face { font-family: "UnifrakturMaguntia"; src: url(fonts/unifrakturmaguntia-latin-400-normal.woff2) format("woff2"); font-display: swap; }
@@ -27,6 +28,7 @@
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
+    touch-action: manipulation;
     background: var(--monte);
     color: var(--pergamino);
     font: 400 1.125rem/1.55 var(--serif);
@@ -185,33 +187,36 @@
     pointer-events: none;
     white-space: nowrap;
   }
-  .tamanos {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.35rem;
-    padding: 0.3rem;
-    border-radius: 14px;
-    background: var(--pergamino-2);
-    border: 0;
-    margin: 0;
-  }
-  .tamanos legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .tamanos label { position: relative; }
-  .tamanos input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-  .tamanos span {
-    display: block;
-    text-align: center;
-    padding: 0.45rem 0.2rem;
-    border-radius: 10px;
-    font-size: 0.98rem;
-    line-height: 1.15;
-  }
-  .tamanos small { display: block; font-size: 0.8rem; color: #5d5a47; }
-  .tamanos input:checked + span { background: var(--monte); color: var(--pergamino); }
-  .tamanos input:checked + span small { color: var(--ceniza); }
-  .tamanos input:focus-visible + span { outline: 2px solid var(--achiote); outline-offset: 2px; }
-  .consejo { margin: 0.7rem 0 0.9rem; font-size: 0.95rem; font-style: italic; color: #4a4a3a; min-height: 2.6em; }
+  .consejo { margin: 0.7rem 0 0; font-size: 0.95rem; font-style: italic; color: #4a4a3a; min-height: 2.6em; }
 
+  .capa-ar {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1.2rem, env(safe-area-inset-bottom));
+    pointer-events: none;
+    color: var(--pergamino);
+    font-family: var(--serif);
+  }
+  .capa-ar[hidden] { display: none; }
+  .capa-mensaje, .capa-pista {
+    align-self: center;
+    margin: 0;
+    padding: 0.45rem 0.9rem;
+    border-radius: 12px;
+    background: rgba(15, 29, 22, 0.75);
+    text-align: center;
+    font-size: 1rem;
+  }
+  .capa-mensaje:empty { display: none; }
+  .capa-abajo { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
+  .capa-salir {
+    pointer-events: auto;
+    border: 0; border-radius: 999px;
+    padding: 0.6rem 1.6rem;
+    background: var(--achiote); color: var(--pergamino);
+    font: 600 1.05rem var(--serif);
+  }
+  .lienzo-ar { position: fixed; inset: 0; }
   .invocar {
     display: block;
     width: 100%;
@@ -250,14 +255,14 @@
 <section class="ficha" id="ficha" aria-modal="true" role="dialog" aria-labelledby="ficha-nombre">
   <button class="volver" id="volver">← Bestiario</button>
   <model-viewer id="visor"
-    camera-controls touch-action="pan-y" auto-rotate auto-rotate-delay="1500" rotation-per-second="18deg"
+    camera-controls disable-zoom touch-action="pan-y" interpolation-decay="120" auto-rotate auto-rotate-delay="1500" rotation-per-second="18deg"
     ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor" ar-scale="fixed"
     shadow-intensity="1.1" shadow-softness="0.8" exposure="1.05" environment-image="neutral"
     interaction-prompt="none" loading="eager"
     autoplay animation-name="Reposo" animation-crossfade-duration="250"
     camera-orbit="0deg 80deg auto">
     <button slot="ar-button" hidden></button>
-    <span class="pista">Tócala para que reaccione</span>
+    <span class="pista">Tócala para que reaccione · doble toque para acercar</span>
   </model-viewer>
   <div class="hoja">
     <div class="hoja-int">
@@ -268,14 +273,8 @@
         <button data-anim="Gritar">Gritar</button>
         <button data-anim="Asustar">Asustar</button>
       </div>
-      <fieldset class="tamanos" id="tamanos">
-        <legend>Tamaño</legend>
-        <label><input type="radio" name="tam" value="suelo" checked><span>Suelo<small id="t-suelo"></small></span></label>
-        <label><input type="radio" name="tam" value="mesa"><span>Mesa<small>30 cm</small></span></label>
-        <label><input type="radio" name="tam" value="palma"><span>Palma<small>12 cm</small></span></label>
-      </fieldset>
-      <p class="consejo" id="consejo"></p>
       <button class="invocar" id="invocar">Ver en mi espacio</button>
+      <p class="consejo">Aparece en tamaño real y se ajusta sola si la pones en una mesa o muy cerca. Tócala para que reaccione; toca dos veces seguidas para acercarla.</p>
       <div class="sin-ar">
         <img src="img/qr.svg" alt="Código QR para abrir esta página en el celular">
         <p>La realidad aumentada funciona en el celular. Escanea el código con la cámara y abre esta misma página.</p>
@@ -284,7 +283,16 @@
   </div>
 </section>
 
+<div class="capa-ar" id="capa-ar" hidden>
+  <p class="capa-mensaje" id="capa-mensaje"></p>
+  <div class="capa-abajo">
+    <p class="capa-pista">Un toque: reacciona · Doble toque: acercar o alejar</p>
+    <button class="capa-salir" id="capa-salir">Salir</button>
+  </div>
+</div>
+
 <script type="module">
+import { arDisponible, iniciarAR } from "./js/ar.js";
 const CRIATURAS = [
   { id: "silbon", nombre: "El Silbón", altura: 1.9,
     linea: "Silba en los Llanos con un costal de huesos.",
@@ -305,12 +313,6 @@ const CRIATURAS = [
     linea: "Vaga por el Magdalena con cuerpo de caimán.",
     leyenda: "Hombre de Plato, Magdalena, que por una pócima mal usada quedó con cuerpo de caimán y vaga por el río." },
 ];
-const TAM = { mesa: 0.3, palma: 0.12 };
-const CONSEJO = {
-  suelo: "Apunta al suelo, mueve el celular despacio y toca para ponerla.",
-  mesa: "Apunta a una mesa con buena luz. Las superficies lisas y blancas cuestan más.",
-  palma: "Ponla sobre una superficie junto a ti y acomoda la palma abierta debajo para la foto.",
-};
 const CLAVE = "ancestrales_encontradas";
 const encontradas = new Set(JSON.parse(localStorage.getItem(CLAVE) || "[]"));
 
@@ -339,14 +341,14 @@ function pintarLista() {
     `Has invocado ${n} de ${CRIATURAS.length}.`;
 }
 
-function tamanoElegido() { return document.querySelector('input[name="tam"]:checked').value; }
-
+/** Tamaño fijo: el grande (tamaño real). En AR se ajusta solo. */
 function aplicarTamano() {
-  const t = tamanoElegido();
-  const h = t === "suelo" ? actual.altura : TAM[t];
+  const h = actual.altura;
   visor.scale = `${h} ${h} ${h}`;
-  document.getElementById("consejo").textContent = CONSEJO[t];
-  requestAnimationFrame(() => visor.updateFraming && visor.updateFraming());
+  cercaVisor = false;
+  visor.autoRotate = true;
+  visor.cameraTarget = "auto auto auto";
+  visor.cameraOrbit = "0deg 80deg auto";
 }
 
 function abrir(id, desdeHistorial = false) {
@@ -355,8 +357,6 @@ function abrir(id, desdeHistorial = false) {
   ultimoFoco = document.activeElement;
   document.getElementById("ficha-nombre").textContent = actual.nombre;
   document.getElementById("ficha-leyenda").textContent = actual.leyenda;
-  document.getElementById("t-suelo").textContent = actual.altura.toFixed(1).replace(".", ",") + " m";
-  document.querySelector('input[value="suelo"]').checked = true;
   visor.alt = `Modelo 3D de ${actual.nombre}`;
   visor.src = `modelos/${actual.id}.glb`;
   visor.animationName = "Reposo";
@@ -386,9 +386,40 @@ window.addEventListener("popstate", () => {
   const id = location.hash.slice(1);
   if (id) abrir(id, true); else if (ficha.classList.contains("abierta")) cerrar(true);
 });
-document.getElementById("tamanos").addEventListener("change", aplicarTamano);
 
-document.getElementById("invocar").addEventListener("click", () => visor.activateAR());
+const capa = document.getElementById("capa-ar");
+const capaMsg = document.getElementById("capa-mensaje");
+let sesionAR = null;
+function marcarEncontrada() {
+  if (actual && !encontradas.has(actual.id)) {
+    encontradas.add(actual.id);
+    localStorage.setItem(CLAVE, JSON.stringify([...encontradas]));
+  }
+}
+let hayWebXR = false;
+arDisponible().then(v => { hayWebXR = v; });
+document.getElementById("invocar").addEventListener("click", async () => {
+  if (hayWebXR) {
+    capa.hidden = false;
+    try {
+      sesionAR = await iniciarAR({
+        url: `modelos/${actual.id}.glb`,
+        altura: actual.altura,
+        capa,
+        mensaje: t => { capaMsg.textContent = t; },
+        alColocar: marcarEncontrada,
+        alTerminar: () => { capa.hidden = true; sesionAR = null; },
+      });
+    } catch (err) {
+      capa.hidden = true;
+      console.warn("WebXR no disponible, uso el visor del sistema", err);
+      visor.activateAR();
+    }
+  } else {
+    visor.activateAR();   // iPhone (Quick Look) o Android sin WebXR (Scene Viewer)
+  }
+});
+document.getElementById("capa-salir").addEventListener("click", () => sesionAR?.terminar());
 
 // ---------- Reacciones al tocar ----------
 const REACCIONES = ["Saludar", "Gritar", "Asustar"];
@@ -398,7 +429,7 @@ async function reaccionar(nombre) {
   if (!visor.loaded) return;
   botones.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.anim === nombre)));
   visor.resetTurntableRotation && visor.resetTurntableRotation(0);   // que te mire de frente
-  visor.cameraOrbit = "0deg 80deg auto";
+  if (!cercaVisor) visor.cameraOrbit = "0deg 80deg auto";
   visor.animationName = nombre;
   await visor.updateComplete;          // si no, el autoplay la deja en bucle
   visor.currentTime = 0;
@@ -415,35 +446,44 @@ document.getElementById("acciones").addEventListener("click", e => {
   const b = e.target.closest("button");
   if (b) reaccionar(b.dataset.anim);
 });
-// Toque sobre la criatura (no cuenta si fue un arrastre para girarla).
-let inicio = null;
+// Un toque sobre la criatura: reacciona. Doble toque: acerca o aleja la cámara.
+let cercaVisor = false, inicio = null, ultimoToque = 0, pendiente = null;
+function alternarCercaniaVisor() {
+  cercaVisor = !cercaVisor;
+  const h = actual.altura;
+  visor.resetTurntableRotation && visor.resetTurntableRotation(0);   // de frente
+  visor.autoRotate = !cercaVisor;                                      // quieta mientras está cerca
+  if (cercaVisor) {
+    visor.cameraTarget = `auto ${(h * 0.8).toFixed(2)}m auto`;
+    visor.cameraOrbit = `0deg 80deg ${(h * 0.75).toFixed(2)}m`;
+  } else {
+    visor.cameraTarget = "auto auto auto";
+    visor.cameraOrbit = "0deg 80deg auto";
+  }
+}
 visor.addEventListener("pointerdown", e => { inicio = { x: e.clientX, y: e.clientY }; });
 visor.addEventListener("pointerup", e => {
   if (!inicio) return;
   const mov = Math.hypot(e.clientX - inicio.x, e.clientY - inicio.y);
   inicio = null;
-  if (mov > 8) return;
-  if (visor.positionAndNormalFromPoint(e.clientX, e.clientY)) {
-    reaccionar(REACCIONES[siguiente % REACCIONES.length]);
-    siguiente++;
+  if (mov > 8) return;                          // fue un arrastre para girarla
+  const ahora = performance.now();
+  if (ahora - ultimoToque < 300) {
+    clearTimeout(pendiente); pendiente = null; ultimoToque = 0;
+    alternarCercaniaVisor();
+    return;
   }
-});
-
-visor.addEventListener("load", () => {
-  ficha.classList.toggle("sin-soporte", !visor.canActivateAR);
-});
-visor.addEventListener("ar-status", e => {
-  if (e.detail.status === "session-started" || e.detail.status === "object-placed") {
-    if (actual && !encontradas.has(actual.id)) {
-      encontradas.add(actual.id);
-      localStorage.setItem(CLAVE, JSON.stringify([...encontradas]));
+  ultimoToque = ahora;
+  const x = e.clientX, y = e.clientY;
+  pendiente = setTimeout(() => {
+    pendiente = null;
+    if (visor.positionAndNormalFromPoint(x, y)) {
+      reaccionar(REACCIONES[siguiente % REACCIONES.length]);
+      siguiente++;
     }
-  }
+  }, 300);
 });
-// Quick Look (iPhone) no emite ar-status: se marca al abrirlo.
-visor.addEventListener("quick-look-button-tapped", () => {
-  if (actual) { encontradas.add(actual.id); localStorage.setItem(CLAVE, JSON.stringify([...encontradas])); }
-});
+visor.addEventListener("dblclick", e => e.preventDefault());
 
 pintarLista();
 const inicial = location.hash.slice(1);

@@ -6,11 +6,16 @@ Seis leyendas de Colombia en realidad aumentada: el Silbón, la Patasola, el Moh
 
 ## App web (esta carpeta raíz)
 - Funciona en el navegador, sin instalar nada.
-- Android (Chrome, con ARCore): la criatura se pone sobre el suelo o una mesa con WebXR o Scene Viewer.
-- iPhone (Safari): se abre en AR Quick Look.
-- Tamaños: suelo (tamaño real), mesa (30 cm) y palma (12 cm).
-- Al tocar la criatura reacciona: **saluda**, **grita** o **asusta**. También hay botones para cada reacción.
-- Hecha con [model-viewer](https://modelviewer.dev) 4.1.0, que va incluido en `js/`. Tipografías UnifrakturMaguntia y EB Garamond (licencia OFL).
+- **Android (Chrome con ARCore):** modo AR propio con WebXR, en `js/ar.js`.
+  - Aparece en tamaño real y se ajusta sola: más pequeña si la superficie es una mesa u objeto alto, o si no cabría en la vista a esa distancia.
+  - **Un toque** sobre la criatura la hace reaccionar. Un toque en el piso la mueve allá.
+  - **Doble toque** la acerca a ti; otro doble toque la devuelve a su sitio.
+- **iPhone (Safari):** se abre en AR Quick Look, en tamaño real.
+- En la vista 3D:
+  - un toque hace que reaccione: **saluda**, **grita** o **asusta**;
+  - doble toque acerca la cámara a la cara;
+  - también hay botones para cada reacción.
+- Hecha con [model-viewer](https://modelviewer.dev) 4.1.0 y [three.js](https://threejs.org) r170, que van incluidos en `js/`. Tipografías UnifrakturMaguntia y EB Garamond (licencia OFL).
 
 | Carpeta | Contenido |
 |---|---|
