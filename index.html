@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1d16">
+<title>Ancestrales — Bestiario en realidad aumentada</title>
+<meta name="description" content="Pon a las leyendas colombianas en tu suelo, tu mesa o tu mano con realidad aumentada.">
+<script type="module" src="js/model-viewer.min.js"></script>
+<style>
+  @font-face { font-family: "UnifrakturMaguntia"; src: url(fonts/unifrakturmaguntia-latin-400-normal.woff2) format("woff2"); font-display: swap; }
+  @font-face { font-family: "EB Garamond"; src: url(fonts/eb-garamond-latin-400-normal.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "EB Garamond"; src: url(fonts/eb-garamond-latin-600-normal.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+  @font-face { font-family: "EB Garamond"; src: url(fonts/eb-garamond-latin-400-italic.woff2) format("woff2"); font-style: italic; font-display: swap; }
+  :root {
+    --monte: #0f1d16;
+    --musgo: #22301f;
+    --pergamino: #efe3c8;
+    --pergamino-2: #e2d2ae;
+    --achiote: #9b2226;
+    --ocre: #b08a4a;
+    --ceniza: #9aa58f;
+    --fraktur: "UnifrakturMaguntia", "Old English Text MT", serif;
+    --serif: "EB Garamond", Garamond, Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--monte);
+    color: var(--pergamino);
+    font: 400 1.125rem/1.55 var(--serif);
+    min-height: 100dvh;
+  }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--ocre); outline-offset: 3px; }
+
+  /* ---------- Portada ---------- */
+  .portada {
+    padding: max(2.5rem, env(safe-area-inset-top)) 1.25rem 1rem;
+    max-width: 68rem;
+    margin: 0 auto;
+  }
+  .portada h1 {
+    font: 400 clamp(3.4rem, 15vw, 7rem)/0.9 var(--fraktur);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .portada p {
+    margin: 0.9rem 0 0;
+    max-width: 34ch;
+    color: var(--ceniza);
+    font-style: italic;
+  }
+  .progreso { margin-top: 0.6rem; color: var(--ocre); font-size: 1rem; }
+
+  /* ---------- Bestiario ---------- */
+  .bestiario {
+    list-style: none;
+    margin: 1.5rem auto 4rem;
+    padding: 0 1.25rem;
+    max-width: 68rem;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  }
+  .lamina {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 42%;
+    align-items: end;
+    width: 100%;
+    min-height: 13.5rem;
+    padding: 1.1rem 0 1.1rem 1.2rem;
+    border: 1px solid rgba(239, 227, 200, 0.14);
+    border-radius: 4px 22px 4px 22px;
+    background: radial-gradient(120% 90% at 85% 40%, var(--musgo) 0%, var(--monte) 70%);
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .lamina:active { transform: scale(0.99); }
+  .lamina img {
+    position: absolute;
+    right: -0.5rem; bottom: 0;
+    height: 112%;
+    width: auto;
+    pointer-events: none;
+  }
+  .lamina .nombre {
+    position: relative;
+    z-index: 1;
+    font: 400 2.35rem/0.95 var(--fraktur);
+    text-shadow: 0 2px 12px var(--monte);
+  }
+  .lamina .linea {
+    position: relative;
+    z-index: 1;
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.98rem;
+    line-height: 1.35;
+    color: var(--ceniza);
+    max-width: 18ch;
+  }
+  .sello {
+    position: absolute;
+    z-index: 2;
+    top: 0.8rem; left: 1rem;
+    font-size: 0.85rem;
+    font-style: italic;
+    color: var(--pergamino);
+    background: var(--achiote);
+    padding: 0.1rem 0.6rem;
+    border-radius: 999px;
+  }
+
+  /* ---------- Ficha (vista de la criatura) ---------- */
+  .ficha {
+    position: fixed; inset: 0;
+    display: none;
+    flex-direction: column;
+    background: radial-gradient(90% 60% at 50% 35%, #2a3a27 0%, var(--monte) 75%);
+    z-index: 10;
+  }
+  .ficha.abierta { display: flex; }
+  model-viewer {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    --poster-color: transparent;
+    --progress-bar-color: var(--ocre);
+  }
+  .volver {
+    position: absolute;
+    top: max(1rem, env(safe-area-inset-top)); left: 1rem;
+    z-index: 3;
+    border: 0;
+    background: rgba(15, 29, 22, 0.7);
+    border-radius: 999px;
+    padding: 0.35rem 1rem;
+    cursor: pointer;
+  }
+  .hoja {
+    flex: 0 0 auto;
+    background: var(--pergamino);
+    color: var(--monte);
+    border-radius: 22px 22px 0 0;
+    padding: 1.3rem 1.25rem max(1.2rem, env(safe-area-inset-bottom));
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.35);
+  }
+  .hoja-int { max-width: 34rem; margin: 0 auto; }
+  .hoja h2 {
+    margin: 0;
+    font: 400 2.6rem/1 var(--fraktur);
+    color: var(--achiote);
+  }
+  .hoja .leyenda { margin: 0.45rem 0 1rem; font-size: 1.02rem; line-height: 1.45; }
+
+  .tamanos {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.35rem;
+    padding: 0.3rem;
+    border-radius: 14px;
+    background: var(--pergamino-2);
+    border: 0;
+    margin: 0;
+  }
+  .tamanos legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tamanos label { position: relative; }
+  .tamanos input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .tamanos span {
+    display: block;
+    text-align: center;
+    padding: 0.45rem 0.2rem;
+    border-radius: 10px;
+    font-size: 0.98rem;
+    line-height: 1.15;
+  }
+  .tamanos small { display: block; font-size: 0.8rem; color: #5d5a47; }
+  .tamanos input:checked + span { background: var(--monte); color: var(--pergamino); }
+  .tamanos input:checked + span small { color: var(--ceniza); }
+  .tamanos input:focus-visible + span { outline: 2px solid var(--achiote); outline-offset: 2px; }
+  .consejo { margin: 0.7rem 0 0.9rem; font-size: 0.95rem; font-style: italic; color: #4a4a3a; min-height: 2.6em; }
+
+  .invocar {
+    display: block;
+    width: 100%;
+    border: 0;
+    border-radius: 14px;
+    padding: 0.95rem 1rem;
+    background: var(--achiote);
+    color: var(--pergamino);
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .invocar:active { filter: brightness(1.1); }
+  .sin-ar { display: none; gap: 1rem; align-items: center; font-size: 0.98rem; }
+  .sin-ar img { width: 104px; height: 104px; border-radius: 8px; flex: none; }
+  .ficha.sin-soporte .invocar { display: none; }
+  .ficha.sin-soporte .sin-ar { display: flex; }
+
+  @media (min-width: 900px) {
+    .ficha { flex-direction: row; }
+    .hoja { width: 26rem; border-radius: 22px 0 0 22px; display: flex; align-items: center; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="portada">
+  <h1>Ancestrales</h1>
+  <p>Seis leyendas de Colombia que puedes poner en tu suelo, en tu mesa o en la palma de tu mano.</p>
+  <div class="progreso" id="progreso"></div>
+</header>
+
+<ul class="bestiario" id="bestiario"></ul>
+
+<section class="ficha" id="ficha" aria-modal="true" role="dialog" aria-labelledby="ficha-nombre">
+  <button class="volver" id="volver">← Bestiario</button>
+  <model-viewer id="visor"
+    camera-controls touch-action="pan-y" auto-rotate auto-rotate-delay="1500" rotation-per-second="18deg"
+    ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor" ar-scale="fixed"
+    shadow-intensity="1.1" shadow-softness="0.8" exposure="1.05" environment-image="neutral"
+    interaction-prompt="none" loading="eager">
+    <button slot="ar-button" hidden></button>
+  </model-viewer>
+  <div class="hoja">
+    <div class="hoja-int">
+      <h2 id="ficha-nombre"></h2>
+      <p class="leyenda" id="ficha-leyenda"></p>
+      <fieldset class="tamanos" id="tamanos">
+        <legend>Tamaño</legend>
+        <label><input type="radio" name="tam" value="suelo" checked><span>Suelo<small id="t-suelo"></small></span></label>
+        <label><input type="radio" name="tam" value="mesa"><span>Mesa<small>30 cm</small></span></label>
+        <label><input type="radio" name="tam" value="palma"><span>Palma<small>12 cm</small></span></label>
+      </fieldset>
+      <p class="consejo" id="consejo"></p>
+      <button class="invocar" id="invocar">Ver en mi espacio</button>
+      <div class="sin-ar">
+        <img src="img/qr.svg" alt="Código QR para abrir esta página en el celular">
+        <p>La realidad aumentada funciona en el celular. Escanea el código con la cámara y abre esta misma página.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="module">
+const CRIATURAS = [
+  { id: "silbon", nombre: "El Silbón", altura: 1.9,
+    linea: "Silba en los Llanos con un costal de huesos.",
+    leyenda: "Alma en pena de los Llanos que carga un costal de huesos. Si su silbido suena cerca, está lejos; si suena lejos, está cerca." },
+  { id: "patasola", nombre: "La Patasola", altura: 1.6,
+    linea: "Salta en una sola pierna por la selva.",
+    leyenda: "Mujer de una sola pierna que habita la selva y persigue a cazadores y leñadores que se internan solos en el monte." },
+  { id: "mohan", nombre: "El Mohán", altura: 1.5,
+    linea: "Brujo de los ríos que enreda las atarrayas.",
+    leyenda: "Brujo de los ríos, de barba y cabellos largos. Hechiza a los pescadores, enreda sus atarrayas y hace crecer las aguas." },
+  { id: "madremonte", nombre: "La Madremonte", altura: 1.8,
+    linea: "Guardiana del bosque cubierta de musgo.",
+    leyenda: "Guardiana del bosque cubierta de musgo y hojas. Castiga a quienes dañan la naturaleza o invaden tierras ajenas." },
+  { id: "hojarasquin", nombre: "El Hojarasquín", altura: 1.8,
+    linea: "Mitad hombre, mitad árbol del monte.",
+    leyenda: "Mitad hombre, mitad árbol. Protege el monte y desorienta a los cazadores para salvar a los animales." },
+  { id: "hombre_caiman", nombre: "El Hombre Caimán", altura: 1.7,
+    linea: "Vaga por el Magdalena con cuerpo de caimán.",
+    leyenda: "Hombre de Plato, Magdalena, que por una pócima mal usada quedó con cuerpo de caimán y vaga por el río." },
+];
+const TAM = { mesa: 0.3, palma: 0.12 };
+const CONSEJO = {
+  suelo: "Apunta al suelo, mueve el celular despacio y toca para ponerla.",
+  mesa: "Apunta a una mesa con buena luz. Las superficies lisas y blancas cuestan más.",
+  palma: "Ponla sobre una superficie junto a ti y acomoda la palma abierta debajo para la foto.",
+};
+const CLAVE = "ancestrales_encontradas";
+const encontradas = new Set(JSON.parse(localStorage.getItem(CLAVE) || "[]"));
+
+const lista = document.getElementById("bestiario");
+const ficha = document.getElementById("ficha");
+const visor = document.getElementById("visor");
+let actual = null;
+let ultimoFoco = null;
+
+function pintarLista() {
+  lista.innerHTML = "";
+  for (const c of CRIATURAS) {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <button class="lamina" data-id="${c.id}" aria-label="${c.nombre}">
+        ${encontradas.has(c.id) ? '<span class="sello">Encontrada</span>' : ""}
+        <span><span class="nombre">${c.nombre}</span><span class="linea">${c.linea}</span></span>
+        <img src="img/${c.id}.webp" alt="" width="400" height="500" loading="lazy">
+      </button>`;
+    lista.appendChild(li);
+  }
+  const n = encontradas.size;
+  document.getElementById("progreso").textContent =
+    n === 0 ? "Aún no has invocado ninguna." :
+    n === CRIATURAS.length ? "Las encontraste a todas." :
+    `Has invocado ${n} de ${CRIATURAS.length}.`;
+}
+
+function tamanoElegido() { return document.querySelector('input[name="tam"]:checked').value; }
+
+function aplicarTamano() {
+  const t = tamanoElegido();
+  const h = t === "suelo" ? actual.altura : TAM[t];
+  visor.scale = `${h} ${h} ${h}`;
+  document.getElementById("consejo").textContent = CONSEJO[t];
+  requestAnimationFrame(() => visor.updateFraming && visor.updateFraming());
+}
+
+function abrir(id, desdeHistorial = false) {
+  actual = CRIATURAS.find(c => c.id === id);
+  if (!actual) return;
+  ultimoFoco = document.activeElement;
+  document.getElementById("ficha-nombre").textContent = actual.nombre;
+  document.getElementById("ficha-leyenda").textContent = actual.leyenda;
+  document.getElementById("t-suelo").textContent = actual.altura.toFixed(1).replace(".", ",") + " m";
+  document.querySelector('input[value="suelo"]').checked = true;
+  visor.alt = `Modelo 3D de ${actual.nombre}`;
+  visor.poster = `img/${actual.id}.webp`;
+  visor.src = `modelos/${actual.id}.glb`;
+  aplicarTamano();
+  ficha.classList.add("abierta");
+  document.body.style.overflow = "hidden";
+  if (!desdeHistorial) history.pushState({ id }, "", "#" + id);
+  document.getElementById("volver").focus();
+}
+
+function cerrar(desdeHistorial = false) {
+  ficha.classList.remove("abierta");
+  document.body.style.overflow = "";
+  if (!desdeHistorial && location.hash) history.back();
+  pintarLista();
+  ultimoFoco && ultimoFoco.focus && ultimoFoco.focus();
+}
+
+lista.addEventListener("click", e => {
+  const b = e.target.closest(".lamina");
+  if (b) abrir(b.dataset.id);
+});
+document.getElementById("volver").addEventListener("click", () => cerrar());
+document.addEventListener("keydown", e => { if (e.key === "Escape" && ficha.classList.contains("abierta")) cerrar(); });
+window.addEventListener("popstate", () => {
+  const id = location.hash.slice(1);
+  if (id) abrir(id, true); else if (ficha.classList.contains("abierta")) cerrar(true);
+});
+document.getElementById("tamanos").addEventListener("change", aplicarTamano);
+
+document.getElementById("invocar").addEventListener("click", () => visor.activateAR());
+
+visor.addEventListener("load", () => {
+  ficha.classList.toggle("sin-soporte", !visor.canActivateAR);
+});
+visor.addEventListener("ar-status", e => {
+  if (e.detail.status === "session-started" || e.detail.status === "object-placed") {
+    if (actual && !encontradas.has(actual.id)) {
+      encontradas.add(actual.id);
+      localStorage.setItem(CLAVE, JSON.stringify([...encontradas]));
+    }
+  }
+});
+// Quick Look (iPhone) no emite ar-status: se marca al abrirlo.
+visor.addEventListener("quick-look-button-tapped", () => {
+  if (actual) { encontradas.add(actual.id); localStorage.setItem(CLAVE, JSON.stringify([...encontradas])); }
+});
+
+pintarLista();
+const inicial = location.hash.slice(1);
+if (inicial) abrir(inicial, true);
+</script>
+</body>
+</html>

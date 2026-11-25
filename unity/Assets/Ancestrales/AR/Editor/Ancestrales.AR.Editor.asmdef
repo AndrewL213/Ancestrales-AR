@@ -1,0 +1,27 @@
+{
+    "name": "Ancestrales.AR.Editor",
+    "rootNamespace": "Ancestrales.AR.Editor",
+    "references": [
+        "Ancestrales.AR",
+        "Unity.XR.ARFoundation",
+        "Unity.XR.ARSubsystems",
+        "Unity.XR.CoreUtils"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.xr.arfoundation",
+            "expression": "5.0.0",
+            "define": "ANCESTRALES_ARF"
+        }
+    ],
+    "noEngineReferences": false
+}
