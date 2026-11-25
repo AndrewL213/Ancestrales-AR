@@ -32,8 +32,8 @@ Todas tienen los mismos 4 tipos de animación, pero cada criatura los hace a su 
 | La Patasola | Saluda con la izquierda y se mece | Brazos arriba | Se lanza con las garras |
 | El Mohán | Alza los dos brazos | Grito hacia atrás | Se agacha y salta hacia ti |
 | La Madremonte | Saludo lento con la derecha | Grito fuerte hacia atrás | Se lanza con las garras |
-| El Hojarasquín | Alza los dos brazos, lento y pesado | Brazos arriba | Se alza con los brazos abiertos |
-| El Hombre Caimán | Abre y cierra la garra | Grito echado hacia adelante | Se agacha y salta hacia ti |
+| El Hojarasquín | Alza los dos brazos, lento y pesado | Grito echado hacia adelante | Se alza con los brazos abiertos |
+| El Hombre Caimán | Abre y cierra la garra | Grito hacia atrás | Se agacha y salta hacia ti |
 
 Cada una tiene además su propia postura de reposo (encorvada, ladeada, con los brazos más abiertos…) y su propio ritmo.
 
