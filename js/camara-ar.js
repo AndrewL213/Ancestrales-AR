@@ -9,9 +9,12 @@ import * as THREE from './three/three.module.min.js';
 import { GLTFLoader } from './three/addons/loaders/GLTFLoader.js';
 
 const REACCIONES = ['Saludar', 'Gritar', 'Asustar'];
-const ESPERA_TOQUES = 300;      // ms para decidir si fueron 1 o 2 toques
+const ESPERA_TOQUES = 350;      // ms para decidir si fueron 1 o 2 toques
 const ALTURA_CELULAR = 1.4;     // metros sobre el piso (se asume)
 const FOV = 62;                 // campo de visión vertical aproximado de la cámara del celular
+// Cuánto de la altura de la pantalla ocupa la criatura (como en Pokémon GO, nunca gigante).
+const PANTALLA_NORMAL = 0.42;
+const PANTALLA_CERCA = 0.62;
 
 /** Pide los permisos. Llamar directamente desde el toque del usuario (iPhone lo exige). */
 export function pedirPermisos() {
@@ -127,15 +130,23 @@ export async function iniciarCamaraAR({ contenedor, permisos, url, altura, mensa
   const sitio = new THREE.Vector3();
   let movimiento = null;
 
-  /** Tamaño automático: el grande, salvo que no quepa en la vista a esa distancia. */
-  function tamanoPara(pos) {
-    const d = camara.position.distanceTo(pos.clone().setY(pos.y + altura * 0.5));
-    const cabe = 2 * d * Math.tan(THREE.MathUtils.degToRad(FOV) / 2) * 0.8;
-    return Math.max(0.25, Math.min(altura, cabe));
+  /**
+   * Tamaño automático según la distancia: la criatura ocupa una parte fija de la pantalla
+   * (más si está "cerca"), y nunca pasa de su tamaño real.
+   */
+  function tamanoPara(pos, fraccion) {
+    let h = altura;
+    for (let i = 0; i < 3; i++) {                     // la distancia depende de la altura: se afina
+      const centro = pos.clone().setY(pos.y + h * 0.5);
+      const d = camara.position.distanceTo(centro);
+      const visible = 2 * d * Math.tan(THREE.MathUtils.degToRad(FOV) / 2);
+      h = Math.min(altura, visible * fraccion);
+    }
+    return Math.max(0.1, h);
   }
 
   function ponerEn(pos, animado) {
-    const h = tamanoPara(pos);
+    const h = tamanoPara(pos, cerca ? PANTALLA_CERCA : PANTALLA_NORMAL);
     const giro = Math.atan2(camara.position.x - pos.x, camara.position.z - pos.z);
     if (animado && raiz.visible) {
       movimiento = { desde: raiz.position.clone(), hasta: pos.clone(), e0: raiz.scale.x, e1: h, t: 0 };
@@ -165,49 +176,55 @@ export async function iniciarCamaraAR({ contenedor, permisos, url, altura, mensa
     }
     // Ni encima de uno, ni demasiado lejos.
     const plano = new THREE.Vector3(p.x - camara.position.x, 0, p.z - camara.position.z);
-    const dist = THREE.MathUtils.clamp(plano.length(), 1.2, 6);
+    const dist = THREE.MathUtils.clamp(plano.length(), 1.5, 6);
     plano.normalize().multiplyScalar(dist);
     return new THREE.Vector3(camara.position.x + plano.x, 0, camara.position.z + plano.z);
   }
 
   function colocar(x, y) {
     sitio.copy(puntoEnPiso(x, y));
+    cerca = false;
     ponerEn(sitio, false);
-    colocada = true; cerca = false;
+    colocada = true;
     mensaje('');
     alColocar?.();
   }
 
   function alternarCercania() {
     if (!colocada) return;
-    if (!cerca) {
+    cerca = !cerca;
+    if (cerca) {
       const dir = new THREE.Vector3(sitio.x - camara.position.x, 0, sitio.z - camara.position.z);
-      const nueva = Math.max(1.0, dir.length() * 0.5);
-      if (nueva < dir.length()) {
-        dir.normalize().multiplyScalar(nueva);
-        ponerEn(new THREE.Vector3(camara.position.x + dir.x, 0, camara.position.z + dir.z), true);
-      }
-      cerca = true;
+      const nueva = Math.max(1.0, dir.length() * 0.6);
+      dir.normalize().multiplyScalar(Math.min(nueva, dir.length()));
+      ponerEn(new THREE.Vector3(camara.position.x + dir.x, 0, camara.position.z + dir.z), true);
     } else {
       ponerEn(sitio, true);
-      cerca = false;
     }
   }
 
   // ---------- Toques: el primero coloca; luego 1 = reacción, 2 = acercar/alejar ----------
-  let toques = 0, temporizador = null, ultimoX = 0, ultimoY = 0;
+  // Se usa la hora del propio toque (no la del reloj del navegador), así un cuadro lento
+  // no convierte un doble toque en dos toques sueltos.
+  let pendiente = null, tPrevio = -1e9;
   function alTocar(e) {
     if (e.target.closest('button')) return;
     e.preventDefault();
-    const x = e.clientX, y = e.clientY;
-    if (!colocada) { colocar(x, y); return; }
-    toques++; ultimoX = x; ultimoY = y;
-    clearTimeout(temporizador);
-    temporizador = setTimeout(() => {
-      const n = toques; toques = 0;
-      if (n === 1) reaccionar();
-      else alternarCercania();
-    }, ESPERA_TOQUES);
+    if (!colocada) { colocar(e.clientX, e.clientY); return; }
+    const t = e.timeStamp;
+    if (pendiente && t - tPrevio < ESPERA_TOQUES) {
+      clearTimeout(pendiente); pendiente = null; tPrevio = -1e9;
+      alternarCercania();
+      return;
+    }
+    tPrevio = t;
+    const decidir = () => {
+      // Si el navegador estuvo ocupado, deja pasar los toques que quedaron en cola.
+      if (performance.now() - tPrevio < ESPERA_TOQUES) { pendiente = setTimeout(decidir, 40); return; }
+      pendiente = null;
+      reaccionar();
+    };
+    pendiente = setTimeout(decidir, ESPERA_TOQUES);
   }
   contenedor.addEventListener('pointerup', alTocar);
 
