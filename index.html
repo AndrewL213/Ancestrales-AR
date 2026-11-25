@@ -67,7 +67,7 @@
   .lamina {
     position: relative;
     display: grid;
-    grid-template-columns: 1fr 42%;
+    grid-template-columns: 1fr 40%;
     align-items: end;
     width: 100%;
     min-height: 13.5rem;
@@ -82,10 +82,15 @@
   .lamina:active { transform: scale(0.99); }
   .lamina img {
     position: absolute;
-    right: -0.5rem; bottom: 0;
-    height: 112%;
+    top: 0; right: 0;
+    height: 100%;
     width: auto;
     pointer-events: none;
+    /* se funde con la lámina por la izquierda y por abajo (medio cuerpo) */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 28%), linear-gradient(to top, transparent 0%, #000 22%);
+    -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(to right, transparent 0%, #000 28%), linear-gradient(to top, transparent 0%, #000 22%);
+    mask-composite: intersect;
   }
   .lamina .nombre {
     position: relative;
@@ -353,7 +358,6 @@ function abrir(id, desdeHistorial = false) {
   document.getElementById("t-suelo").textContent = actual.altura.toFixed(1).replace(".", ",") + " m";
   document.querySelector('input[value="suelo"]').checked = true;
   visor.alt = `Modelo 3D de ${actual.nombre}`;
-  visor.poster = `img/${actual.id}.webp`;
   visor.src = `modelos/${actual.id}.glb`;
   visor.animationName = "Reposo";
   siguiente = 0;
