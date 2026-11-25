@@ -6,11 +6,12 @@ Seis leyendas de Colombia en realidad aumentada: el Silbón, la Patasola, el Moh
 
 ## App web (esta carpeta raíz)
 - Funciona en el navegador, sin instalar nada.
-- **Android (Chrome con ARCore):** modo AR propio con WebXR, en `js/ar.js`.
-  - Aparece en tamaño real y se ajusta sola: más pequeña si la superficie es una mesa u objeto alto, o si no cabría en la vista a esa distancia.
-  - **Un toque** sobre la criatura la hace reaccionar. Un toque en el piso la mueve allá.
-  - **Doble toque** la acerca a ti; otro doble toque la devuelve a su sitio.
-- **iPhone (Safari):** se abre en AR Quick Look, en tamaño real.
+- **Realidad aumentada con la cámara** (`js/camara-ar.js`): funciona en cualquier navegador del celular, iPhone o Android, como el modo AR clásico de Pokémon GO.
+  - Usa el video de la cámara y el giroscopio para que la criatura se quede en su sitio.
+  - **El primer toque la coloca** en el piso, donde tocaste.
+  - Se ajusta sola: tamaño real, pero siempre completa en la vista según la distancia.
+  - Después, **1 toque** la hace reaccionar y **2 toques** la acercan o la alejan.
+  - **Colocar de nuevo** permite cambiarla de sitio.
 - En la vista 3D:
   - un toque hace que reaccione: **saluda**, **grita** o **asusta**;
   - doble toque acerca la cámara a la cara;

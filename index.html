@@ -6,7 +6,6 @@
 <meta name="theme-color" content="#0f1d16">
 <title>Ancestrales — Bestiario en realidad aumentada</title>
 <meta name="description" content="Pon a las leyendas colombianas en tu suelo, tu mesa o tu mano con realidad aumentada.">
-<script type="importmap">{ "imports": { "three": "./js/three/three.module.min.js", "three/addons/": "./js/three/addons/" } }</script>
 <script type="module" src="js/model-viewer.min.js"></script>
 <style>
   @font-face { font-family: "UnifrakturMaguntia"; src: url(fonts/unifrakturmaguntia-latin-400-normal.woff2) format("woff2"); font-display: swap; }
@@ -189,15 +188,25 @@
   }
   .consejo { margin: 0.7rem 0 0; font-size: 0.95rem; font-style: italic; color: #4a4a3a; min-height: 2.6em; }
 
+  .camara-ar { position: fixed; inset: 0; z-index: 30; background: #000; touch-action: none; }
+  .camara-ar[hidden] { display: none; }
+  .ar-video, .ar-lienzo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .capa-botones { display: flex; gap: 0.6rem; }
+  .capa-boton {
+    pointer-events: auto;
+    border: 1.5px solid var(--pergamino); border-radius: 999px;
+    padding: 0.6rem 1.2rem;
+    background: rgba(15, 29, 22, 0.7); color: var(--pergamino);
+    font: 600 1rem var(--serif);
+  }
   .capa-ar {
-    position: fixed; inset: 0;
+    position: absolute; inset: 0;
     display: flex; flex-direction: column; justify-content: space-between;
     padding: max(1rem, env(safe-area-inset-top)) 1rem max(1.2rem, env(safe-area-inset-bottom));
     pointer-events: none;
     color: var(--pergamino);
     font-family: var(--serif);
   }
-  .capa-ar[hidden] { display: none; }
   .capa-mensaje, .capa-pista {
     align-self: center;
     margin: 0;
@@ -207,16 +216,9 @@
     text-align: center;
     font-size: 1rem;
   }
-  .capa-mensaje:empty { display: none; }
+  .capa-mensaje:empty { visibility: hidden; }
   .capa-abajo { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
-  .capa-salir {
-    pointer-events: auto;
-    border: 0; border-radius: 999px;
-    padding: 0.6rem 1.6rem;
-    background: var(--achiote); color: var(--pergamino);
-    font: 600 1.05rem var(--serif);
-  }
-  .lienzo-ar { position: fixed; inset: 0; }
+  .capa-salir { background: var(--achiote); border-color: var(--achiote); }
   .invocar {
     display: block;
     width: 100%;
@@ -274,7 +276,7 @@
         <button data-anim="Asustar">Asustar</button>
       </div>
       <button class="invocar" id="invocar">Ver en mi espacio</button>
-      <p class="consejo">Aparece en tamaño real y se ajusta sola si la pones en una mesa o muy cerca. Tócala para que reaccione; toca dos veces seguidas para acercarla.</p>
+      <p class="consejo">Se abre la cámara: el primer toque la coloca y se ajusta sola. Después, 1 toque la hace reaccionar y 2 toques la acercan o la alejan.</p>
       <div class="sin-ar">
         <img src="img/qr.svg" alt="Código QR para abrir esta página en el celular">
         <p>La realidad aumentada funciona en el celular. Escanea el código con la cámara y abre esta misma página.</p>
@@ -283,18 +285,21 @@
   </div>
 </section>
 
-<div class="capa-ar" id="capa-ar" hidden>
-  <p class="capa-mensaje" id="capa-mensaje"></p>
-  <div class="capa-abajo">
-    <p class="capa-pista">Un toque: reacciona · Doble toque: acercar o alejar</p>
-    <button class="capa-salir" id="capa-salir">Salir</button>
+<div class="camara-ar" id="camara-ar" hidden>
+  <div class="capa-ar">
+    <p class="capa-mensaje" id="capa-mensaje"></p>
+    <div class="capa-abajo">
+      <p class="capa-pista">1 toque: reacciona · 2 toques: acercar o alejar</p>
+      <div class="capa-botones">
+        <button class="capa-boton" id="capa-recolocar">Colocar de nuevo</button>
+        <button class="capa-boton capa-salir" id="capa-salir">Salir</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <script type="module">
-// El modo AR propio se carga solo cuando hace falta: si el navegador no lo soporta,
-// el resto de la página sigue funcionando.
-const cargarAR = () => import("./js/ar.js");
+// La realidad aumentada se carga solo al usarla: así la página nunca deja de funcionar.
 const CRIATURAS = [
   { id: "silbon", nombre: "El Silbón", altura: 1.9,
     linea: "Silba en los Llanos con un costal de huesos.",
@@ -389,7 +394,7 @@ window.addEventListener("popstate", () => {
   if (id) abrir(id, true); else if (ficha.classList.contains("abierta")) cerrar(true);
 });
 
-const capa = document.getElementById("capa-ar");
+const capa = document.getElementById("camara-ar");
 const capaMsg = document.getElementById("capa-mensaje");
 let sesionAR = null;
 function marcarEncontrada() {
@@ -398,33 +403,43 @@ function marcarEncontrada() {
     localStorage.setItem(CLAVE, JSON.stringify([...encontradas]));
   }
 }
-let hayWebXR = false;
-if (navigator.xr && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap")) {
-  navigator.xr.isSessionSupported("immersive-ar").then(v => { hayWebXR = v; }).catch(() => {});
+/** Se llama directo desde el toque: iPhone solo da permisos dentro del gesto. */
+function pedirPermisos() {
+  const orientacion = (typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission)
+    ? DeviceOrientationEvent.requestPermission().catch(() => "denied")
+    : Promise.resolve("granted");
+  const camara = navigator.mediaDevices?.getUserMedia
+    ? navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false })
+    : Promise.reject(new Error("sin cámara"));
+  camara.catch(() => {});
+  return { orientacion, camara };
+}
+function cerrarAR() {
+  sesionAR?.terminar(); sesionAR = null;
+  capa.hidden = true;
+  document.body.style.overflow = ficha.classList.contains("abierta") ? "hidden" : "";
 }
 document.getElementById("invocar").addEventListener("click", async () => {
-  if (hayWebXR) {
-    capa.hidden = false;
-    try {
-      const { iniciarAR } = await cargarAR();
-      sesionAR = await iniciarAR({
-        url: `modelos/${actual.id}.glb`,
-        altura: actual.altura,
-        capa,
-        mensaje: t => { capaMsg.textContent = t; },
-        alColocar: marcarEncontrada,
-        alTerminar: () => { capa.hidden = true; sesionAR = null; },
-      });
-    } catch (err) {
-      capa.hidden = true;
-      console.warn("WebXR no disponible, uso el visor del sistema", err);
-      visor.activateAR();
-    }
-  } else {
-    visor.activateAR();   // iPhone (Quick Look) o Android sin WebXR (Scene Viewer)
+  const permisos = pedirPermisos();
+  capa.hidden = false;
+  capaMsg.textContent = "Abriendo la cámara…";
+  try {
+    const { iniciarCamaraAR } = await import("./js/camara-ar.js");
+    sesionAR = await iniciarCamaraAR({
+      contenedor: capa,
+      permisos,
+      url: `modelos/${actual.id}.glb`,
+      altura: actual.altura,
+      mensaje: t => { capaMsg.textContent = t; },
+      alColocar: marcarEncontrada,
+    });
+  } catch (err) {
+    console.warn(err);
+    capaMsg.textContent = "No se pudo abrir la cámara. Revisa que el navegador tenga permiso de cámara para esta página y vuelve a intentarlo.";
   }
 });
-document.getElementById("capa-salir").addEventListener("click", () => sesionAR?.terminar());
+document.getElementById("capa-recolocar").addEventListener("click", () => sesionAR?.recolocar());
+document.getElementById("capa-salir").addEventListener("click", cerrarAR);
 
 // ---------- Reacciones al tocar ----------
 const REACCIONES = ["Saludar", "Gritar", "Asustar"];
