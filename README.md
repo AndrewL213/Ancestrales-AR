@@ -14,7 +14,7 @@ Seis leyendas de Colombia en realidad aumentada: el Silbón, la Patasola, el Moh
 
 | Carpeta | Contenido |
 |---|---|
-| `modelos/` | Las criaturas en `.glb`: 1 m de alto, origen en los pies, colores unificados, con esqueleto y 4 animaciones (Reposo, Saludar, Gritar, Asustar). |
+| `modelos/` | Las criaturas en `.glb`: 1 m de alto, origen en los pies, en escala de grises (monocromáticas), con esqueleto y 4 animaciones (Reposo, Saludar, Gritar, Asustar). |
 | `img/` | Retratos para el bestiario y el código QR. |
 
 ## Módulo para Unity (`unity/Assets/Ancestrales/AR`)
